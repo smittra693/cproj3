@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riemann Sums Calculator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        .function-display {
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        select, input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #results-section {
+            display: none;
+            margin-top: 30px;
+            border-top: 2px solid #eee;
+            padding-top: 20px;
+        }
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .result-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            border-left: 5px solid #3498db;
+        }
+        .result-card h3 {
+            margin: 0 0 5px 0;
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            text-transform: uppercase;
+        }
+        .result-card p {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        canvas {
+            display: block;
+            margin: 20px auto;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            max-width: 100%;
+        }
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            max-width: 400px;
+            width: 90%;
+        }
+        .modal h3 {
+            margin-top: 0;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .modal-buttons button {
+            width: 100px;
+        }
+        .btn-secondary {
+            background-color: #95a5a6;
+        }
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Riemann Sum Visualizer</h1>
+    <div class="function-display">Function: f(x) = x³ - 4x</div>
+
+    <form id="riemann-form">
+        <div class="form-group">
+            <label for="type">Approximation Type:</label>
+            <select id="type" required>
+                <option value="LRAM">LRAM (Left Riemann Sum)</option>
+                <option value="RRAM">RRAM (Right Riemann Sum)</option>
+                <option value="MRAM">MRAM (Midpoint Riemann Sum)</option>
+                <option value="TRAP">Trapezoidal Rule</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="lower-x">Lower x value (a):</label>
+            <input type="number" id="lower-x" step="any" value="-2" required>
+        </div>
+
+        <div class="form-group">
+            <label for="upper-x">Upper x value (b):</label>
+            <input type="number" id="upper-x" step="any" value="2" required>
+        </div>
+
+        <div class="form-group">
+            <label for="subdivisions">Number of Subdivisions (n):</label>
+            <input type="number" id="subdivisions" min="1" max="1000" value="10" required>
+        </div>
+
+        <button type="submit">Calculate & Graph</button>
+    </form>
+
+    <div id="results-section">
+        <h2>Visualization & Analysis</h2>
+        <canvas id="graphCanvas" width="800" height="400"></canvas>
+        
+        <div class="results-grid">
+            <div class="result-card">
+                <h3>Approximation Value</h3>
+                <p id="approx-val">0.0000</p>
+            </div>
+            <div class="result-card" style="border-left-color: #2ecc71;">
+                <h3>Actual Value (Integral)</h3>
+                <p id="actual-val">0.0000</p>
+            </div>
+            <div class="result-card" style="border-left-color: #e74c3c;">
+                <h3>Absolute Error</h3>
+                <p id="error-val">0.0000</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="resetModal">
+    <div class="modal">
+        <h3>Calculation Complete!</h3>
+        <p>Would you like to perform another approximation?</p>
+        <div class="modal-buttons">
+            <button id="btn-yes">Yes</button>
+            <button id="btn-no" class="btn-secondary">No</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Define the function f(x) = x^3 - 4x
+    function f(x) {
+        return Math.pow(x, 3) - 4 * x;
+    }
+
+    // Antiderivative F(x) = (x^4)/4 - 2x^2 for definite integral calculations
+    function F(x) {
+        return Math.pow(x, 4) / 4 - 2 * Math.pow(x, 2);
+    }
+
+    const form = document.getElementById('riemann-form');
+    const resultsSection = document.getElementById('results-section');
+    const canvas = document.getElementById('graphCanvas');
+    const ctx = canvas.getContext('2d');
+    const modal = document.getElementById('resetModal');
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // 1. Get input values
+        const type = document.getElementById('type').value;
+        const a = parseFloat(document.getElementById('lower-x').value);
+        const b = parseFloat(document.getElementById('upper-x').value);
+        const n = parseInt(document.getElementById('subdivisions').value);
+
+        if (a >= b) {
+            alert("Lower x value (a) must be less than Upper x value (b).");
+            return;
+        }
+
+        // 2. Calculations
+        const dx = (b - a) / n;
+        let approxSum = 0;
+
+        for (let i = 0; i < n; i++) {
+            const xLeft = a + i * dx;
+            const xRight = xLeft + dx;
+            
+            if (type === 'LRAM') {
+                approxSum += f(xLeft) * dx;
+            } else if (type === 'RRAM') {
+                approxSum += f(xRight) * dx;
+            } else if (type === 'MRAM') {
+                const xMid = xLeft + dx / 2;
+                approxSum += f(xMid) * dx;
+            } else if (type === 'TRAP') {
+                approxSum += ((f(xLeft) + f(xRight)) / 2) * dx;
+            }
+        }
+
+        const actualValue = F(b) - F(a);
+        const error = Math.abs(actualValue - approxSum);
+
+        // 3. Update DOM with numerical results
+        document.getElementById('approx-val').textContent = approxSum.toFixed(4);
+        document.getElementById('actual-val').textContent = actualValue.toFixed(4);
+        document.getElementById('error-val').textContent = error.toFixed(4);
+
+        // 4. Render the Graph
+        drawGraph(a, b, n, type);
+
+        // 5. Reveal results and trigger modal prompt
+        resultsSection.style.display = 'block';
+        resultsSection.scrollIntoView({ behavior: 'smooth' });
+        
+        setTimeout(() => {
+            modal.style.display = 'flex';
+        }, 800); 
+    });
+
+    // Handle modal "Yes" and "No" buttons
+    document.getElementById('btn-yes').addEventListener('click', function() {
+        modal.style.display = 'none';
+        form.reset();
+        document.getElementById('lower-x').focus();
+    });
+
+    document.getElementById('btn-no').addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+
+    // Graph drawing engine
+    function drawGraph(a, b, n, type) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Dynamic padding/bounds calculation based on user inputs
+        const padding = 40;
+        const xMin = a - 1;
+        const xMax = b + 1;
+        
+        // Find y min and max within range to scale graph dynamically
+        let yMin = -2;
+        let yMax = 2;
+        for (let x = xMin; x <= xMax; x += 0.1) {
+            let y = f(x);
+            if (y < yMin) yMin = y;
+            if (y > yMax) yMax = y;
+        }
+        yMin -= 1; 
+        yMax += 1;
+
+        // Helper functions to translate math coordinates to canvas pixels
+        function getCanvasX(xMath) {
+            return padding + ((xMath - xMin) / (xMax - xMin)) * (canvas.width - 2 * padding);
+        }
+        function getCanvasY(yMath) {
+            return canvas.height - padding - ((yMath - yMin) / (yMax - yMin)) * (canvas.height - 2 * padding);
+        }
+
+        const originY = getCanvasY(0);
+        const originX = getCanvasX(0);
+
+        // Draw Axes
+        ctx.strokeStyle = '#bdc3c7';
+        ctx.lineWidth = 1.5;
+        // X-Axis
+        if (originY >= 0 && originY <= canvas.height) {
+            ctx.beginPath();
+            ctx.moveTo(0, originY);
+            ctx.lineTo(canvas.width, originY);
+            ctx.stroke();
+        }
+        // Y-Axis
+        if (originX >= 0 && originX <= canvas.width) {
+            ctx.beginPath();
+            ctx.moveTo(originX, 0);
+            ctx.lineTo(originX, canvas.height);
+            ctx.stroke();
+        }
+
+        // Draw Riemann Subdivisions (Rectangles / Trapezoids)
+        const dx = (b - a) / n;
+        ctx.fillStyle = 'rgba(52, 152, 219, 0.4)';
+        ctx.strokeStyle = '#2980b9';
+        ctx.lineWidth = 1;
+
+        for (let i = 0; i < n; i++) {
+            const xLeft = a + i * dx;
+            const xRight = xLeft + dx;
+            
+            const cxLeft = getCanvasX(xLeft);
+            const cxRight = getCanvasX(xRight);
+            const cw = cxRight - cxLeft;
+
+            let yTarget = 0;
+
+            if (type === 'LRAM') {
+                yTarget = f(xLeft);
+                const cyTarget = getCanvasY(yTarget);
+                ctx.fillRect(cxLeft, cyTarget, cw, originY - cyTarget);
+                ctx.strokeRect(cxLeft, cyTarget, cw, originY - cyTarget);
+            } else if (type === 'RRAM') {
+                yTarget = f(xRight);
+                const cyTarget = getCanvasY(yTarget);
+                ctx.fillRect(cxLeft, cyTarget, cw, originY - cyTarget);
+                ctx.strokeRect(cxLeft, cyTarget, cw, originY - cyTarget);
+            } else if (type === 'MRAM') {
+                yTarget = f(xLeft + dx / 2);
+                const cyTarget = getCanvasY(yTarget);
+                ctx.fillRect(cxLeft, cyTarget, cw, originY - cyTarget);
+                ctx.strokeRect(cxLeft, cyTarget, cw, originY - cyTarget);
+            } else if (type === 'TRAP') {
+                const cyLeft = getCanvasY(f(xLeft));
+                const cyRight = getCanvasY(f(xRight));
+
+                ctx.beginPath();
+                ctx.moveTo(cxLeft, originY);
+                ctx.lineTo(cxLeft, cyLeft);
+                ctx.lineTo(cxRight, cyRight);
+                ctx.lineTo(cxRight, originY);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            }
+        }
+
+        // Draw Continuous Curve f(x) = x^3 - 4x
+        ctx.beginPath();
+        ctx.strokeStyle = '#e74c3c';
+        ctx.lineWidth = 3;
+        
+        let first = true;
+        for (let cx = 0; cx < canvas.width; cx++) {
+            // Reverse engineering mathematical x from canvas pixel position
+            const xMath = xMin + ((cx - padding) / (canvas.width - 2 * padding)) * (xMax - xMin);
+            const yMath = f(xMath);
+            const cy = getCanvasY(yMath);
+
+            if (cy >= 0 && cy <= canvas.height) {
+                if (first) {
+                    ctx.moveTo(cx, cy);
+                    first = false;
+                } else {
+                    ctx.lineTo(cx, cy);
+                }
+            }
+        }
+        ctx.stroke();
+
+        // Draw interval boundary markers (a and b lines)
+        ctx.strokeStyle = '#2c3e50';
+        ctx.setLineDash([5, 5]);
+        ctx.lineWidth = 1;
+        
+        ctx.beginPath();
+        ctx.moveTo(getCanvasX(a), 0);
+        ctx.lineTo(getCanvasX(a), canvas.height);
+        ctx.moveTo(getCanvasX(b), 0);
+        ctx.lineTo(getCanvasX(b), canvas.height);
+        ctx.stroke();
+        ctx.setLineDash([]); // Reset dash
+
+        // Labels for intervals
+        ctx.fillStyle = '#2c3e50';
+        ctx.font = '12px Arial';
+        ctx.fillText(`a = ${a}`, getCanvasX(a) - 10, originY + (originY + 20 > canvas.height ? -10 : 20));
+        ctx.fillText(`b = ${b}`, getCanvasX(b) - 10, originY + (originY + 20 > canvas.height ? -10 : 20));
+    }
+</script>
+
+</body>
+</html>
