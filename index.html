@@ -82,10 +82,12 @@
             height: 400px;
             width: 100%;
         }
+        /* Fixed styling to force layout to stack linearly at the bottom */
         #prompt-box {
             display: none;
             text-align: center;
-            margin-top: 25px;
+            margin-top: 30px;
+            clear: both;
             padding: 20px;
             background: #fff8db;
             border: 1px solid #f1c40f;
@@ -158,20 +160,16 @@
 <script>
     let chartInstance = null;
 
-    // Define target function: f(x) = x^3 - 4x
     function f(x) {
         return Math.pow(x, 3) - 4 * x;
     }
 
-    // Exact definite integral of x^3 - 4x from a to b
-    // Antiderivative F(x) = (x^4)/4 - 2x^2
     function exactIntegral(a, b) {
         const F = (x) => (Math.pow(x, 4) / 4) - (2 * Math.pow(x, 2));
         return F(b) - F(a);
     }
 
     function calculate() {
-        // 1. Get input values
         const type = document.getElementById('type').value;
         const a = parseFloat(document.getElementById('a').value);
         const b = parseFloat(document.getElementById('b').value);
@@ -188,13 +186,9 @@
 
         const dx = (b - a) / n;
         let approxSum = 0;
+        let shapesData = []; 
 
-        // Data arrays for Chart JS visualization
-        let shapesData = []; // Will store the outline data for bars/trapezoids
-
-        // 2. Math logic processing
         if (type === 'TRAP') {
-            // Trapezoidal Rule logic
             approxSum += f(a) / 2;
             for (let i = 1; i < n; i++) {
                 approxSum += f(a + i * dx);
@@ -202,14 +196,12 @@
             approxSum += f(b) / 2;
             approxSum *= dx;
 
-            // Generate outline paths for trapezoids
             for (let i = 0; i < n; i++) {
                 let x0 = a + i * dx;
                 let x1 = a + (i + 1) * dx;
                 shapesData.push({x: x0, y: 0}, {x: x0, y: f(x0)}, {x: x1, y: f(x1)}, {x: x1, y: 0}, {x: x0, y: NaN});
             }
         } else {
-            // Riemann Rectangles (LRAM, RRAM, MRAM)
             for (let i = 0; i < n; i++) {
                 let xLeft = a + i * dx;
                 let xRight = a + (i + 1) * dx;
@@ -222,7 +214,6 @@
                 let height = f(evalX);
                 approxSum += height * dx;
 
-                // Build full rectangle visualization coordinate path
                 shapesData.push({x: xLeft, y: 0}, {x: xLeft, y: height}, {x: xRight, y: height}, {x: xRight, y: 0}, {x: xLeft, y: NaN});
             }
         }
@@ -230,24 +221,27 @@
         const exact = exactIntegral(a, b);
         const error = Math.abs(exact - approxSum);
 
-        // 3. Update Results Section
         document.getElementById('approx-val').innerText = approxSum.toFixed(6);
         document.getElementById('exact-val').innerText = exact.toFixed(6);
         document.getElementById('error-val').innerText = error.toFixed(6);
 
-        // Hide Calculate Button and reveal results & reset prompt
+        // Crucial Order Fix: Reveal structural wrappers instantly before creating the graph
         document.getElementById('calculate-btn').style.display = 'none';
         document.getElementById('results').style.display = 'block';
-        document.getElementById('prompt-box').style.display = 'block';
 
         // 4. Generate Graph
         renderGraph(a, b, shapesData);
+
+        // Reveal the prompt box simultaneously with the graph layout completion
+        document.getElementById('prompt-box').style.display = 'block';
+        
+        // Automatically slide smoothly to the prompt at the bottom
+        document.getElementById('prompt-box').scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
 
     function renderGraph(a, b, shapesData) {
-        // Generate continuous curve data for f(x) = x^3 - 4x
         let curveData = [];
-        let padding = (b - a) * 0.1; // Add 10% padding to graph bounds
+        let padding = (b - a) * 0.1; 
         let startX = a - padding;
         let endX = b + padding;
         let steps = 150;
@@ -259,7 +253,6 @@
 
         const ctx = document.getElementById('riemannChart').getContext('2d');
 
-        // Destroy old canvas layout if it exists to refresh fresh state
         if (chartInstance) {
             chartInstance.destroy();
         }
@@ -285,13 +278,16 @@
                         backgroundColor: 'rgba(52, 152, 219, 0.3)',
                         borderWidth: 2,
                         pointRadius: 0,
-                        fill: 'origin' // Fills down/up to the x-axis baseline
+                        fill: 'origin'
                     }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: {
+                    duration: 0 // Turned off initialization delay so the graph prints instantly
+                },
                 scales: {
                     x: {
                         type: 'linear',
@@ -300,7 +296,6 @@
                     },
                     y: {
                         title: { display: true, text: 'Y Axis' }
-                        // Removed min: 0 to allow negative space rendering
                     }
                 },
                 plugins: {
@@ -318,12 +313,9 @@
     }
 
     function resetForm() {
-        // Hide results/prompt and bring back calculate interface safely
         document.getElementById('results').style.display = 'none';
         document.getElementById('prompt-box').style.display = 'none';
         document.getElementById('calculate-btn').style.display = 'block';
-        
-        // Scroll back up to the inputs smooth
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 </script>
