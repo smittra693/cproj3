@@ -74,7 +74,7 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
         }
         .result-card {
             background: #f8f9fa;
@@ -103,39 +103,27 @@
             border-radius: 4px;
             max-width: 100%;
         }
-        /* Modal Styles */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .modal {
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
+        /* Inline Prompt Styles Below Graph */
+        .prompt-container {
+            background: #ebf5fb;
+            border: 1px solid #a9cce3;
+            padding: 20px;
+            border-radius: 6px;
             text-align: center;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-            max-width: 400px;
-            width: 90%;
+            margin-top: 25px;
         }
-        .modal h3 {
+        .prompt-container h3 {
             margin-top: 0;
+            color: #2c3e50;
         }
-        .modal-buttons {
+        .prompt-buttons {
             display: flex;
-            gap: 10px;
+            gap: 15px;
             justify-content: center;
-            margin-top: 20px;
+            margin-top: 15px;
         }
-        .modal-buttons button {
-            width: 100px;
+        .prompt-buttons button {
+            width: 120px;
         }
         .btn-secondary {
             background-color: #95a5a6;
@@ -198,16 +186,14 @@
                 <p id="error-val">0.0000</p>
             </div>
         </div>
-    </div>
-</div>
 
-<div class="modal-overlay" id="resetModal">
-    <div class="modal">
-        <h3>Calculation Complete!</h3>
-        <p>Would you like to perform another approximation?</p>
-        <div class="modal-buttons">
-            <button id="btn-yes">Yes</button>
-            <button id="btn-no" class="btn-secondary">No</button>
+        <div class="prompt-container" id="another-prompt">
+            <h3>Calculation Complete!</h3>
+            <p>Would you like to perform another approximation?</p>
+            <div class="prompt-buttons">
+                <button id="btn-yes">Yes</button>
+                <button id="btn-no" class="btn-secondary">No</button>
+            </div>
         </div>
     </div>
 </div>
@@ -227,7 +213,7 @@
     const resultsSection = document.getElementById('results-section');
     const canvas = document.getElementById('graphCanvas');
     const ctx = canvas.getContext('2d');
-    const modal = document.getElementById('resetModal');
+    const promptContainer = document.getElementById('another-prompt');
 
     form.addEventListener('submit', function(e) {
         e.preventDefault();
@@ -274,36 +260,35 @@
         // 4. Render the Graph
         drawGraph(a, b, n, type);
 
-        // 5. Reveal results and trigger modal prompt
+        // 5. Reveal results section and prompt
         resultsSection.style.display = 'block';
-        resultsSection.scrollIntoView({ behavior: 'smooth' });
+        promptContainer.style.display = 'block';
         
-        setTimeout(() => {
-            modal.style.display = 'flex';
-        }, 800); 
+        // Smooth scroll to the calculation prompt
+        promptContainer.scrollIntoView({ behavior: 'smooth' });
     });
 
-    // Handle modal "Yes" and "No" buttons
+    // Handle "Yes" button click
     document.getElementById('btn-yes').addEventListener('click', function() {
-        modal.style.display = 'none';
         form.reset();
+        resultsSection.style.display = 'none'; // Optional: hides old graph until recalculation
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         document.getElementById('lower-x').focus();
     });
 
+    // Handle "No" button click
     document.getElementById('btn-no').addEventListener('click', function() {
-        modal.style.display = 'none';
+        promptContainer.style.display = 'none'; // Just dismisses the prompt banner
     });
 
     // Graph drawing engine
     function drawGraph(a, b, n, type) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Dynamic padding/bounds calculation based on user inputs
         const padding = 40;
         const xMin = a - 1;
         const xMax = b + 1;
         
-        // Find y min and max within range to scale graph dynamically
         let yMin = -2;
         let yMax = 2;
         for (let x = xMin; x <= xMax; x += 0.1) {
@@ -314,7 +299,6 @@
         yMin -= 1; 
         yMax += 1;
 
-        // Helper functions to translate math coordinates to canvas pixels
         function getCanvasX(xMath) {
             return padding + ((xMath - xMin) / (xMax - xMin)) * (canvas.width - 2 * padding);
         }
@@ -325,17 +309,15 @@
         const originY = getCanvasY(0);
         const originX = getCanvasX(0);
 
-        // Draw Axes
         ctx.strokeStyle = '#bdc3c7';
         ctx.lineWidth = 1.5;
-        // X-Axis
+        
         if (originY >= 0 && originY <= canvas.height) {
             ctx.beginPath();
             ctx.moveTo(0, originY);
             ctx.lineTo(canvas.width, originY);
             ctx.stroke();
         }
-        // Y-Axis
         if (originX >= 0 && originX <= canvas.width) {
             ctx.beginPath();
             ctx.moveTo(originX, 0);
@@ -343,7 +325,6 @@
             ctx.stroke();
         }
 
-        // Draw Riemann Subdivisions (Rectangles / Trapezoids)
         const dx = (b - a) / n;
         ctx.fillStyle = 'rgba(52, 152, 219, 0.4)';
         ctx.strokeStyle = '#2980b9';
@@ -389,14 +370,12 @@
             }
         }
 
-        // Draw Continuous Curve f(x) = x^3 - 4x
         ctx.beginPath();
         ctx.strokeStyle = '#e74c3c';
         ctx.lineWidth = 3;
         
         let first = true;
         for (let cx = 0; cx < canvas.width; cx++) {
-            // Reverse engineering mathematical x from canvas pixel position
             const xMath = xMin + ((cx - padding) / (canvas.width - 2 * padding)) * (xMax - xMin);
             const yMath = f(xMath);
             const cy = getCanvasY(yMath);
@@ -412,7 +391,6 @@
         }
         ctx.stroke();
 
-        // Draw interval boundary markers (a and b lines)
         ctx.strokeStyle = '#2c3e50';
         ctx.setLineDash([5, 5]);
         ctx.lineWidth = 1;
@@ -423,9 +401,8 @@
         ctx.moveTo(getCanvasX(b), 0);
         ctx.lineTo(getCanvasX(b), canvas.height);
         ctx.stroke();
-        ctx.setLineDash([]); // Reset dash
+        ctx.setLineDash([]); 
 
-        // Labels for intervals
         ctx.fillStyle = '#2c3e50';
         ctx.font = '12px Arial';
         ctx.fillText(`a = ${a}`, getCanvasX(a) - 10, originY + (originY + 20 > canvas.height ? -10 : 20));
